@@ -46,18 +46,18 @@ return [
             ],
         ],
 
-        'soketi' => [
+        'sockudo' => [
             'driver' => 'pusher',
-            'key' => env('SOKETI_APP_KEY', 'demo-search-key'),
-            'secret' => env('SOKETI_APP_SECRET', 'demo-search-secret'),
-            'app_id' => env('SOKETI_APP_ID', 'demo-search'),
+            'key' => env('SOCKUDO_APP_KEY', 'demo-search-key'),
+            'secret' => env('SOCKUDO_APP_SECRET', 'demo-search-secret'),
+            'app_id' => env('SOCKUDO_APP_ID', 'demo-search'),
             'options' => [
                 'cluster' => 'mt1',
-                'host' => env('SOKETI_HOST', 'localhost'),
-                'port' => env('SOKETI_PORT', 6002),
-                'scheme' => env('SOKETI_SCHEME', 'http'),
+                'host' => env('SOCKUDO_HOST', 'localhost'),
+                'port' => env('SOCKUDO_PORT', 6002),
+                'scheme' => env('SOCKUDO_SCHEME', 'http'),
                 'encrypted' => false,
-                'useTLS' => env('SOKETI_SCHEME', 'http') === 'https',
+                'useTLS' => env('SOCKUDO_SCHEME', 'http') === 'https',
             ],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html

@@ -91,18 +91,18 @@ A responsive search UI built with **Tailwind CSS** and **shadcn/ui** that demons
 **“A reference demo showing Meilisearch-powered search in Laravel with a modern React UI (Tailwind + shadcn/ui), including seeded data, indexing, filters, sorting, and a production-style search UX.”**
 ---
 
-## WebSocket broadcasting (Reverb & Soketi)
+## WebSocket broadcasting (Reverb & Sockudo)
 
 The project ships with **two** WebSocket servers running side-by-side in Docker:
 
-| | Reverb | Soketi |
+| | Reverb | Sockudo |
 |---|---|---|
-| Image | `serversideup/php:8.3-cli` | `quay.io/soketi/soketi:1.6-16-debian` |
+| Image | `serversideup/php:8.3-cli` | `sockudo/sockudo:latest` |
 | Host port | 6001 | 6002 |
-| Protocol | Reverb (Pusher-compatible) | Pusher native |
+| Protocol | Reverb (Pusher-compatible) | Pusher native (Rust) |
 
 ### How to switch between them
 
-1. In `.env`, change `BROADCAST_CONNECTION=reverb` to `BROADCAST_CONNECTION=soketi` (or vice-versa).
+1. In `.env`, change `BROADCAST_CONNECTION=reverb` to `BROADCAST_CONNECTION=sockudo` (or vice-versa).
 2. Restart the Laravel app (`php artisan config:clear` or restart `php artisan serve`).
 3. Rebuild Vite (`npm run dev` or `npm run build`) — the `VITE_BROADCAST_CONNECTION` var propagates automatically.

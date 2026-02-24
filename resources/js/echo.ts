@@ -5,36 +5,36 @@ import Pusher from 'pusher-js';
 window.Pusher = Pusher;
 
 /**
- * Laravel Echo — auto-configured for either Reverb or Soketi.
+ * Laravel Echo — auto-configured for either Reverb or Sockudo.
  *
  * Both use the Pusher protocol. Set BROADCAST_CONNECTION in .env to switch:
- *   - 'reverb' → connects to Reverb on port 6001
- *   - 'soketi' → connects to Soketi on port 6002
+ *   - 'reverb'  → connects to Reverb on port 6001
+ *   - 'sockudo' → connects to Sockudo on port 6002
  */
 const driver = import.meta.env.VITE_BROADCAST_CONNECTION ?? 'reverb';
 
-const isSoketi = driver === 'soketi';
+const isSockudo = driver === 'sockudo';
 
-const key = isSoketi
-    ? import.meta.env.VITE_SOKETI_APP_KEY
+const key = isSockudo
+    ? import.meta.env.VITE_SOCKUDO_APP_KEY
     : import.meta.env.VITE_REVERB_APP_KEY;
 
-const wsHost = isSoketi
-    ? import.meta.env.VITE_SOKETI_HOST
+const wsHost = isSockudo
+    ? import.meta.env.VITE_SOCKUDO_HOST
     : import.meta.env.VITE_REVERB_HOST;
 
-const wsPort = isSoketi
-    ? (import.meta.env.VITE_SOKETI_PORT ?? 6002)
+const wsPort = isSockudo
+    ? (import.meta.env.VITE_SOCKUDO_PORT ?? 6002)
     : (import.meta.env.VITE_REVERB_PORT ?? 6001);
 
-const scheme = isSoketi
-    ? (import.meta.env.VITE_SOKETI_SCHEME ?? 'http')
+const scheme = isSockudo
+    ? (import.meta.env.VITE_SOCKUDO_SCHEME ?? 'http')
     : (import.meta.env.VITE_REVERB_SCHEME ?? 'http');
 
 const echo = new Echo({
-    broadcaster: isSoketi ? 'pusher' : 'reverb',
+    broadcaster: isSockudo ? 'pusher' : 'reverb',
     key,
-    cluster: isSoketi ? 'mt1' : undefined,
+    cluster: isSockudo ? 'mt1' : undefined,
     wsHost,
     wsPort,
     wssPort: wsPort,
