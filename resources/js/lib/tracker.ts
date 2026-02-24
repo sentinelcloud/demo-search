@@ -1,8 +1,9 @@
 /**
  * Analytics Tracker
  *
- * Buffers tracking events and flushes them in batches via sendBeacon or fetch.
- * Designed for minimal performance impact — events are queued and sent every 2 seconds.
+ * Fires tracking events immediately via fetch. Each event is sent as a single-item
+ * batch to /api/track the moment it occurs — no buffering or debouncing.
+ * Uses sendBeacon only on page unload for any stragglers.
  */
 
 interface TrackingEvent {
@@ -24,30 +25,7 @@ interface TrackingEvent {
 }
 
 class Tracker {
-    private buffer: TrackingEvent[] = [];
-    private flushInterval: ReturnType<typeof setInterval> | null = null;
     private endpoint = '/api/track';
-    private maxBufferSize = 50;
-    private flushIntervalMs = 2000;
-
-    constructor() {
-        this.startFlushing();
-
-        // Flush on page unload
-        if (typeof window !== 'undefined') {
-            window.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden') {
-                    this.flush();
-                }
-            });
-            window.addEventListener('beforeunload', () => this.flush());
-        }
-    }
-
-    private startFlushing(): void {
-        if (this.flushInterval) return;
-        this.flushInterval = setInterval(() => this.flush(), this.flushIntervalMs);
-    }
 
     private getUTMParams(): Record<string, string> {
         if (typeof window === 'undefined') return {};
@@ -62,7 +40,7 @@ class Tracker {
 
     trackPageView(path?: string, title?: string): void {
         const utm = this.getUTMParams();
-        this.push({
+        this.send({
             type: 'pageview',
             timestamp: new Date().toISOString(),
             path: path ?? window.location.pathname,
@@ -76,7 +54,7 @@ class Tracker {
     }
 
     trackImpression(productId: number, path?: string): void {
-        this.push({
+        this.send({
             type: 'impression',
             timestamp: new Date().toISOString(),
             product_id: productId,
@@ -85,7 +63,7 @@ class Tracker {
     }
 
     trackClick(productId: number, metadata?: Record<string, unknown>): void {
-        this.push({
+        this.send({
             type: 'click',
             timestamp: new Date().toISOString(),
             product_id: productId,
@@ -94,35 +72,9 @@ class Tracker {
         });
     }
 
-    private push(event: TrackingEvent): void {
-        this.buffer.push(event);
-        if (this.buffer.length >= this.maxBufferSize) {
-            this.flush();
-        }
-    }
+    private send(event: TrackingEvent): void {
+        const payload = JSON.stringify({ events: [event] });
 
-    flush(): void {
-        if (this.buffer.length === 0) return;
-
-        const events = [...this.buffer];
-        this.buffer = [];
-
-        const payload = JSON.stringify({ events });
-
-        // Prefer sendBeacon for reliability during page unload
-        if (typeof navigator.sendBeacon === 'function') {
-            const blob = new Blob([payload], { type: 'application/json' });
-            const sent = navigator.sendBeacon(this.endpoint, blob);
-            if (!sent) {
-                // Fallback to fetch if sendBeacon fails
-                this.sendViaFetch(payload);
-            }
-        } else {
-            this.sendViaFetch(payload);
-        }
-    }
-
-    private sendViaFetch(payload: string): void {
         fetch(this.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -134,11 +86,7 @@ class Tracker {
     }
 
     destroy(): void {
-        this.flush();
-        if (this.flushInterval) {
-            clearInterval(this.flushInterval);
-            this.flushInterval = null;
-        }
+        // No-op — nothing to clean up with immediate sending
     }
 }
 

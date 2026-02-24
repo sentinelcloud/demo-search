@@ -47,6 +47,11 @@ class AnalyticsDashboardController extends Controller
                 'visitors' => $visitorsLastHour,
             ],
             'horizonStats' => $horizonStats,
+            'viewer' => [
+                'id' => session('admin_viewer_id', 'unknown'),
+                'name' => session('admin_viewer_name', 'Anonymous'),
+                'color' => session('admin_viewer_color', '#3b82f6'),
+            ],
         ]);
     }
 
@@ -123,8 +128,8 @@ class AnalyticsDashboardController extends Controller
     {
         try {
             $prefix = config('horizon.prefix', 'horizon:');
-            $recentJobs = (int) Redis::get($prefix . 'total_processes') ?: 0;
-            $failedJobs = (int) Redis::connection('default')->llen($prefix . 'failed_jobs') ?: 0;
+            $recentJobs = (int) Redis::get($prefix.'total_processes') ?: 0;
+            $failedJobs = (int) Redis::connection('default')->llen($prefix.'failed_jobs') ?: 0;
 
             return [
                 'total_processes' => $recentJobs,

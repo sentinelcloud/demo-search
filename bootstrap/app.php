@@ -9,11 +9,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\AssignAnonymousViewer::class,
         ]);
 
         // Trust Traefik/Kubernetes proxy — read real client IP from X-Forwarded-For
@@ -45,6 +47,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Prune old raw analytics data — daily at 3am
         $schedule->job(\App\Jobs\PruneRawAnalytics::class)->dailyAt('03:00');
+
+        // Shuffle product prices hourly to simulate dynamic pricing
+        $schedule->command('products:shuffle-prices')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

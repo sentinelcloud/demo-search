@@ -2,15 +2,17 @@
 
 namespace App\Jobs;
 
+use App\Events\AnalyticsEventProcessed;
+use App\Models\AnalyticsEvent;
+use App\Models\Product;
+use App\Services\DeviceDetectorService;
+use App\Services\FingerprintService;
+use App\Services\SessionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Services\FingerprintService;
-use App\Services\SessionService;
-use App\Services\DeviceDetectorService;
-use App\Models\AnalyticsEvent;
 
 class ProcessAnalyticsEvent implements ShouldQueue
 {
@@ -57,16 +59,38 @@ class ProcessAnalyticsEvent implements ShouldQueue
             ipHash: hash('sha256', $this->ip),
         );
 
+        // Validate product exists to avoid FK violations (e.g. stale Meilisearch index)
+        $productId = $this->productId && Product::where('id', $this->productId)->exists()
+            ? $this->productId
+            : null;
+
         // Create analytics event
-        AnalyticsEvent::create([
+        $analyticsEvent = AnalyticsEvent::create([
             'visitor_id' => $visitor->id,
             'session_id' => $session->id,
             'event_name' => $this->eventName,
-            'product_id' => $this->productId,
+            'product_id' => $productId,
             'path' => $this->path,
             'metadata' => $this->metadata,
             'created_at' => $this->timestamp,
         ]);
+
+        // Broadcast the event via Reverb for the live event feed
+        try {
+            broadcast(new AnalyticsEventProcessed([
+                'id' => $analyticsEvent->id,
+                'event_name' => $analyticsEvent->event_name,
+                'product_id' => $analyticsEvent->product_id,
+                'path' => $analyticsEvent->path,
+                'created_at' => $analyticsEvent->created_at->toIso8601String(),
+                'product' => $analyticsEvent->product ? [
+                    'id' => $analyticsEvent->product->id,
+                    'title' => $analyticsEvent->product->title,
+                ] : null,
+            ]));
+        } catch (\Throwable) {
+            // Don't fail the job if broadcasting fails
+        }
 
         // Update visitor last seen
         $visitor->update(['last_seen_at' => now()]);

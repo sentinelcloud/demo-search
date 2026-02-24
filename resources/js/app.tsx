@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import '../css/app.css';
+import './echo';
 
 createInertiaApp({
     title: (title) => title ? `${title} - Demo Search` : 'Demo Search',

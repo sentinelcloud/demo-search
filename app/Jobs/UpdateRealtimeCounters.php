@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\LiveStatsUpdated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,8 +32,8 @@ class UpdateRealtimeCounters implements ShouldQueue
         // Use Redis pipeline for efficiency (demo: shows off Redis pipelining)
         $redis->pipeline(function ($pipe) use ($today, $hour, $ttl) {
             // Global live counters
-            $pipe->incr("analytics:live:page_views");
-            $pipe->expire("analytics:live:page_views", $ttl);
+            $pipe->incr('analytics:live:page_views');
+            $pipe->expire('analytics:live:page_views', $ttl);
 
             // Unique visitors via HyperLogLog (demo: shows off HLL)
             $pipe->pfadd("analytics:live:visitors:{$today}", [$this->visitorFingerprint]);
@@ -56,8 +57,36 @@ class UpdateRealtimeCounters implements ShouldQueue
             }
 
             // Timestamp of last event
-            $pipe->set("analytics:live:last_event_at", now()->toIso8601String());
-            $pipe->expire("analytics:live:last_event_at", $ttl);
+            $pipe->set('analytics:live:last_event_at', now()->toIso8601String());
+            $pipe->expire('analytics:live:last_event_at', $ttl);
         });
+
+        // Broadcast live stats via Reverb (throttled to max 1/second)
+        $throttleKey = 'analytics:broadcast:throttle';
+        if (! $redis->exists($throttleKey)) {
+            $redis->setex($throttleKey, 1, '1');
+            $this->broadcastLiveStats($redis, $today, $hour);
+        }
+    }
+
+    private function broadcastLiveStats(mixed $redis, string $today, string $hour): void
+    {
+        try {
+            $stats = [
+                'page_views_total' => (int) $redis->get('analytics:live:page_views') ?: 0,
+                'page_views_this_hour' => (int) $redis->get("analytics:hourly:{$hour}:page_views") ?: 0,
+                'unique_visitors_today' => (int) Redis::command('PFCOUNT', ["analytics:live:visitors:{$today}"]),
+                'unique_visitors_this_hour' => (int) Redis::command('PFCOUNT', ["analytics:hourly:{$hour}:visitors"]),
+                'event_pageviews' => (int) $redis->get('analytics:live:events:pageview') ?: 0,
+                'event_impressions' => (int) $redis->get('analytics:live:events:product_impression') ?: 0,
+                'event_clicks' => (int) $redis->get('analytics:live:events:product_click') ?: 0,
+                'last_event_at' => $redis->get('analytics:live:last_event_at'),
+                'timestamp' => now()->toIso8601String(),
+            ];
+
+            broadcast(new LiveStatsUpdated($stats));
+        } catch (\Throwable) {
+            // Don't fail the job if broadcasting fails
+        }
     }
 }

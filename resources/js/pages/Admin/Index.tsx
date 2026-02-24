@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import type { PaginatedData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, ArrowLeft, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, BarChart3, Zap, FileText } from 'lucide-react';
 
 interface AdminProduct {
     id: number;
@@ -39,8 +39,12 @@ export default function AdminIndex({ products }: AdminIndexProps) {
                         </div>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" onClick={() => router.visit('/admin/analytics')}>
-                                <BarChart3 className="h-4 w-4 mr-2" />
-                                Analytics
+                                <Zap className="h-4 w-4 mr-2" />
+                                Realtime
+                            </Button>
+                            <Button variant="outline" onClick={() => router.visit('/admin/reports')}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Reports
                             </Button>
                             <Button onClick={() => router.visit('/admin/create')}>
                                 <Plus className="h-4 w-4 mr-2" />
